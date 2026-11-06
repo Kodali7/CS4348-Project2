@@ -14,4 +14,8 @@ From the requirements and examples, I realized that semaphores can be used both 
 
 For this session, I plan to create the introduction part with one teller and three customers. Each customer has to wait for the teller, then put its ID in shared information to access, and finally signal that it is ready to introduce itself. The teller will read that ID and acknowledge it. Something I need to make sure is that the next customer can't replace the ID or take someone's acknowledgment. To do this, I think I have to make sure current customer keeps their turn until they receive the acknowledgement for them. To ensure it works, I'll check that each customer is acknowledged once and that all four threads finish.
 
+## 11/06/2026 10:47 am
 
+The introduction part is now in project2.py. The teller and customer functions are in the same file like needed with the required parts like shared ID, semaphores, and code that starts and joins the threads. The customer keeps its turn until it receives the teller's acknowledgment, before letting the next customer take over. For printing, we also use a semaphore so that messages won't get mixed together.
+
+The checks passed with different customer start orders. Each customer was acknowledged once, and then all threads finished properly. I didn't see any failures come up during these checks. The next part I want to work on is the three tellers, waiting customers, and bank opening and door rules.
