@@ -1,21 +1,28 @@
 import threading
 
 
-CUSTOMER_COUNT = 3
-TELLER_ID = 0
+CUSTOMER_COUNT = 5
+TELLER_COUNT = 3
 
-# once teller says ready, we make it available
+# main waits for all tellers before letting customers enter
+tellers_ready = threading.Semaphore(0)
+bank_open = threading.Semaphore(0)
+# the door is only held while passing through, not during the whole visit
+door = threading.Semaphore(2)
+# counts the tellers that customers can select
 teller_available = threading.Semaphore(0)
-# signals that a customer has written its ID for the teller and is ready
-customer_ready = threading.Semaphore(0)
-# signals that the teller has acknowledged the current customer
-introduction_received = threading.Semaphore(0)
+# protects the list when tellers or customers change it
+available_tellers_mutex = threading.Semaphore(1)
+available_tellers = []
+# each teller has its own shared ID and introduction signals
+customer_ready = [threading.Semaphore(0) for _ in range(TELLER_COUNT)]
+introduction_received = [threading.Semaphore(0) for _ in range(TELLER_COUNT)]
 # only one thread can print a message at a time to make it easy to understand
 output_mutex = threading.Semaphore(1)
 
 
-# whichever has teller's turn only can write to this
-current_customer_id = None
+# only the customer holding a teller's turn can write that teller's ID slot
+current_customer_id = [None for _ in range(TELLER_COUNT)]
 
 
 # prints the actions to terminal without mixing messages from other threads
@@ -27,54 +34,92 @@ def log(message):
 # announces readiness, then waits for and acknowledges each customer
 def teller(teller_id):
     log(f"Teller {teller_id}: ready to serve")
+    with available_tellers_mutex:
+        available_tellers.append(teller_id)
     teller_available.release()
+    tellers_ready.release()
 
-    for _ in range(CUSTOMER_COUNT):
+    while True:
         log(f"Teller {teller_id}: waiting for a customer introduction")
-        customer_ready.acquire()
+        customer_ready[teller_id].acquire()
 
-        customer_id = current_customer_id
+        customer_id = current_customer_id[teller_id]
+        # main sends None only after every customer thread has finished
+        if customer_id is None:
+            break
         log(f"Teller {teller_id} [Customer {customer_id}]: acknowledges introduction")
-        introduction_received.release()
+        introduction_received[teller_id].release()
 
     log(f"Teller {teller_id}: finished introductions")
 
 
 # each customer takes turn, shares ID, and waits for acknowledgment before giving turn
 def customer(customer_id):
-    global current_customer_id
+    log(f"Customer {customer_id}: waiting for bank to open")
+    bank_open.acquire()
 
-    log(f"Customer {customer_id} [Teller {TELLER_ID}]: waiting to select teller")
+    log(f"Customer {customer_id}: waiting to enter bank")
+    with door:
+        log(f"Customer {customer_id}: entering bank through door")
+        log(f"Customer {customer_id}: entered bank")
+
+    log(f"Customer {customer_id}: waiting to select teller")
     teller_available.acquire()
-    log(f"Customer {customer_id} [Teller {TELLER_ID}]: selects teller")
+    with available_tellers_mutex:
+        teller_id = available_tellers.pop(0)
+    log(f"Customer {customer_id} [Teller {teller_id}]: selects teller")
 
-    current_customer_id = customer_id
-    log(f"Customer {customer_id} [Teller {TELLER_ID}]: introduces itself")
-    customer_ready.release()
+    current_customer_id[teller_id] = customer_id
+    log(f"Customer {customer_id} [Teller {teller_id}]: introduces itself")
+    customer_ready[teller_id].release()
 
-    introduction_received.acquire()
-    log(f"Customer {customer_id} [Teller {TELLER_ID}]: introduction acknowledged")
+    introduction_received[teller_id].acquire()
+    log(f"Customer {customer_id} [Teller {teller_id}]: introduction acknowledged")
 
     # we don't switch the turn until customer receives their acknowledgement
+    log(f"Customer {customer_id} [Teller {teller_id}]: leaves teller")
+    with available_tellers_mutex:
+        available_tellers.append(teller_id)
     teller_available.release()
+
+    log(f"Customer {customer_id}: waiting to exit bank")
+    with door:
+        log(f"Customer {customer_id}: exiting bank through door")
+        log(f"Customer {customer_id}: left bank")
 
 
 # main driver program
 # creates/starts threads and waits for them to finish
 def main():
-    teller_thread = threading.Thread(target=teller, args=(TELLER_ID,))
+    teller_threads = [
+        threading.Thread(target=teller, args=(teller_id,))
+        for teller_id in range(TELLER_COUNT)
+    ]
     customer_threads = [
         threading.Thread(target=customer, args=(customer_id,))
         for customer_id in range(CUSTOMER_COUNT)
     ]
 
-    teller_thread.start()
+    for thread in teller_threads:
+        thread.start()
     for thread in customer_threads:
         thread.start()
 
+    for _ in range(TELLER_COUNT):
+        tellers_ready.acquire()
+    log("Bank: open")
+    for _ in range(CUSTOMER_COUNT):
+        bank_open.release()
+
     for thread in customer_threads:
         thread.join()
-    teller_thread.join()
+
+    # wake idle tellers so this only intro stage can finish
+    for teller_id in range(TELLER_COUNT):
+        current_customer_id[teller_id] = None
+        customer_ready[teller_id].release()
+    for thread in teller_threads:
+        thread.join()
 
 
 if __name__ == "__main__":
