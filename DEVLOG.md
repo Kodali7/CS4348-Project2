@@ -19,3 +19,9 @@ For this session, I plan to create the introduction part with one teller and thr
 The introduction part is now in project2.py. The teller and customer functions are in the same file like needed with the required parts like shared ID, semaphores, and code that starts and joins the threads. The customer keeps its turn until it receives the teller's acknowledgment, before letting the next customer take over. For printing, we also use a semaphore so that messages won't get mixed together.
 
 The checks passed with different customer start orders. Each customer was acknowledged once, and then all threads finished properly. I didn't see any failures come up during these checks. The next part I want to work on is the three tellers, waiting customers, and bank opening and door rules.
+
+## 11/08/2026 2:13 pm
+
+For this session, I plan to expand the introduction part to three tellers with IDs 0, 1, and 2. Customers need to wait until all three tellers are ready before entering the bank. I'll need to keep track of tellers that are available and protect that shared information with a semaphore so that two customers can't select the same teller. Additionally, each teller will also need their own shared customer ID and introduction signals for the acknowledgment to go to the right customer. If all tellers are busy, then the customers should have to wait.
+
+I'll need to add a door semaphore that allows two customers to pass through at a time for entering and exiting. Once customer passes through door, it should be released for use. I will also check that no customer enters before the bank opens, no teller is assigned to two customers at once, each customer gets the correct acknowledgment, and all threads finish properly.
