@@ -1,3 +1,4 @@
+import random
 import threading
 
 
@@ -14,15 +15,21 @@ teller_available = threading.Semaphore(0)
 # protects the list when tellers or customers change it
 available_tellers_mutex = threading.Semaphore(1)
 available_tellers = []
-# each teller has its own shared ID and introduction signals
+# each teller has its own shared id and introduction signals
 customer_ready = [threading.Semaphore(0) for _ in range(TELLER_COUNT)]
 introduction_received = [threading.Semaphore(0) for _ in range(TELLER_COUNT)]
+# separate signals keep the transaction steps in order for each teller
+transaction_requested = [threading.Semaphore(0) for _ in range(TELLER_COUNT)]
+transaction_ready = [threading.Semaphore(0) for _ in range(TELLER_COUNT)]
+transaction_done = [threading.Semaphore(0) for _ in range(TELLER_COUNT)]
+customer_left = [threading.Semaphore(0) for _ in range(TELLER_COUNT)]
 # only one thread can print a message at a time to make it easy to understand
 output_mutex = threading.Semaphore(1)
 
 
-# only the customer holding a teller's turn can write that teller's ID slot
+# only the customer holding a teller's turn can write these shared slots
 current_customer_id = [None for _ in range(TELLER_COUNT)]
+current_transaction = [None for _ in range(TELLER_COUNT)]
 
 
 # prints the actions to terminal without mixing messages from other threads
@@ -31,7 +38,7 @@ def log(message):
         print(message, flush=True)
 
 
-# announces readiness, then waits for and acknowledges each customer
+# serves one customer at a time and waits for them to leave before the next
 def teller(teller_id):
     log(f"Teller {teller_id}: ready to serve")
     with available_tellers_mutex:
@@ -50,11 +57,31 @@ def teller(teller_id):
         log(f"Teller {teller_id} [Customer {customer_id}]: acknowledges introduction")
         introduction_received[teller_id].release()
 
-    log(f"Teller {teller_id}: finished introductions")
+        log(f"Teller {teller_id} [Customer {customer_id}]: asks for transaction")
+        transaction_requested[teller_id].release()
+        log(f"Teller {teller_id} [Customer {customer_id}]: waiting for transaction")
+        transaction_ready[teller_id].acquire()
+        transaction = current_transaction[teller_id]
+        log(f"Teller {teller_id} [Customer {customer_id}]: received {transaction}")
+
+        # manager and safe work will go here before the completion signal
+        log(f"Teller {teller_id} [Customer {customer_id}]: signals transaction completion")
+        transaction_done[teller_id].release()
+
+        log(f"Teller {teller_id} [Customer {customer_id}]: waiting for customer to leave")
+        customer_left[teller_id].acquire()
+        log(f"Teller {teller_id} [Customer {customer_id}]: customer left station")
+        with available_tellers_mutex:
+            available_tellers.append(teller_id)
+        teller_available.release()
+
+    log(f"Teller {teller_id}: finished serving")
 
 
-# each customer takes turn, shares ID, and waits for acknowledgment before giving turn
+# shares an id and transaction, then waits for completion before leaving
 def customer(customer_id):
+    transaction = random.choice(("deposit", "withdrawal"))
+    log(f"Customer {customer_id}: chooses {transaction}")
     log(f"Customer {customer_id}: waiting for bank to open")
     bank_open.acquire()
 
@@ -76,11 +103,18 @@ def customer(customer_id):
     introduction_received[teller_id].acquire()
     log(f"Customer {customer_id} [Teller {teller_id}]: introduction acknowledged")
 
-    # we don't switch the turn until customer receives their acknowledgement
+    log(f"Customer {customer_id} [Teller {teller_id}]: waiting for transaction request")
+    transaction_requested[teller_id].acquire()
+    current_transaction[teller_id] = transaction
+    log(f"Customer {customer_id} [Teller {teller_id}]: requests {transaction}")
+    transaction_ready[teller_id].release()
+
+    log(f"Customer {customer_id} [Teller {teller_id}]: waiting for transaction completion")
+    transaction_done[teller_id].acquire()
+    log(f"Customer {customer_id} [Teller {teller_id}]: transaction complete")
+
     log(f"Customer {customer_id} [Teller {teller_id}]: leaves teller")
-    with available_tellers_mutex:
-        available_tellers.append(teller_id)
-    teller_available.release()
+    customer_left[teller_id].release()
 
     log(f"Customer {customer_id}: waiting to exit bank")
     with door:
@@ -114,7 +148,7 @@ def main():
     for thread in customer_threads:
         thread.join()
 
-    # wake idle tellers so this only intro stage can finish
+    # wake idle tellers after every customer has finished
     for teller_id in range(TELLER_COUNT):
         current_customer_id[teller_id] = None
         customer_ready[teller_id].release()
