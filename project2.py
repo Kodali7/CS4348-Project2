@@ -1,5 +1,6 @@
 import random
 import threading
+import time
 
 
 CUSTOMER_COUNT = 5
@@ -10,6 +11,9 @@ tellers_ready = threading.Semaphore(0)
 bank_open = threading.Semaphore(0)
 # the door is only held while passing through, not during the whole visit
 door = threading.Semaphore(2)
+# one teller with the manager, two in the safe
+manager = threading.Semaphore(1)
+safe = threading.Semaphore(2)
 # counts the tellers that customers can select
 teller_available = threading.Semaphore(0)
 # protects the list when tellers or customers change it
@@ -51,7 +55,7 @@ def teller(teller_id):
         customer_ready[teller_id].acquire()
 
         customer_id = current_customer_id[teller_id]
-        # main sends None only after every customer thread has finished
+        # main clears the slot only after every customeer is done
         if customer_id is None:
             break
         log(f"Teller {teller_id} [Customer {customer_id}]: acknowledges introduction")
@@ -64,7 +68,20 @@ def teller(teller_id):
         transaction = current_transaction[teller_id]
         log(f"Teller {teller_id} [Customer {customer_id}]: received {transaction}")
 
-        # manager and safe work will go here before the completion signal
+        if transaction == "withdrawal":
+            log(f"Teller {teller_id} [Customer {customer_id}]: goes to manager")
+            with manager:
+                log(f"Teller {teller_id} [Customer {customer_id}]: getting manager permission")
+                time.sleep(random.randint(5, 30) / 1000)
+                log(f"Teller {teller_id} [Customer {customer_id}]: received manager permission")
+
+        # both types use the safe before telling customer done
+        log(f"Teller {teller_id} [Customer {customer_id}]: goes to safe")
+        with safe:
+            log(f"Teller {teller_id} [Customer {customer_id}]: enters safe for {transaction}")
+            time.sleep(random.randint(10, 50) / 1000)
+            log(f"Teller {teller_id} [Customer {customer_id}]: leaves safe")
+
         log(f"Teller {teller_id} [Customer {customer_id}]: signals transaction completion")
         transaction_done[teller_id].release()
 

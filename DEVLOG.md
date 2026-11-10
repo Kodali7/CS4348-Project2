@@ -49,3 +49,9 @@ I forgot to release the new transaction_done semaphore, which left the customer 
 For this session, I'm going to add the manager and safe to the transaction part. For withdrawals, the teller would need permission from the manager before going to the safe, so I'll use semaphores so that only one teller can use the manager at a time and only two can be in the safe. I also have to make sure both deposits and withdrawals use the safe. The teller should finish this work before telling the customer the transaction is done.
 
 I'll keep three tellers and five customers while working on this part since we did it before. While finishing this part, I will also check that previous parts properly integrated with this part
+
+## 11/10/2026 2:17 pm
+
+I added the manager and safe to the transaction part. Withdrawals can now get permission from the manager, while deposits skip that step. I also had to use semaphores to allow one teller with the manager and two in the safe at a time. I also added the random delays and messages for using both resources. The teller releases the manager before going to the safe and finishes the safe work before telling the customer the transaction is done. This keeeps the customer from leaving too early and ensures proper completion.
+
+During testing, I realized I originaly was counting the teller's waiting message twice (duplicate), even though the teller should wait again after serving each customer. To fix this, I updated the duplicate check to only compare messages tied to customer instead of checking the printed lines. This allowed me to check and ensure the teller's waiting message to repeat while still checking for repeated customer actions. After fixing this part, I tried this process again and everything seemed to close properly.
