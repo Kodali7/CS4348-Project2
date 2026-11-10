@@ -99,6 +99,11 @@ def teller(teller_id):
 def customer(customer_id):
     transaction = random.choice(("deposit", "withdrawal"))
     log(f"Customer {customer_id}: chooses {transaction}")
+    # wait outside without holding the door
+    log(f"Customer {customer_id}: waiting to arrive")
+    time.sleep(random.randint(0, 100) / 1000)
+    log(f"Customer {customer_id}: arrived at bank")
+
     log(f"Customer {customer_id}: waiting for bank to open")
     bank_open.acquire()
 

@@ -61,3 +61,9 @@ During testing, I realized I originaly was counting the teller's waiting message
 Here, I plan to add the random customer arrival delay now that the manager and safe part is working. For this to work, after choosing a transaction, each customer will wait between 0 and 100 ms before trying to enter the bank. I'll add messages before and after the wait and still enforce the bank opening rule so customers can't enter until all three tellers are ready.
 
 I'll keep using three tellers and five customers from the previous session. The arrival delay needs to happen before taking the door semaphore so a customer doesn't hold the door while waiting to arrive. I'll also check that the transaction steps still work and all threads finish properly.
+
+## 11/10/2026 2:41 pm
+
+I added the random arrival delay after customer chooses a trannsaction. Each customer has to wait now between 0 and 100 ms before trying to enter bank, with messages before and after the wait. I kept this outside the door semaphore so the delay doesn't stop other customers from using the door and entering. The existing bank opening signal still checks enforces the entering condition.
+
+I didn't face any problems here as it was just a short part to add and other previous parts still work. So far, I think I completed all the required sub parts before reaching and trying the full run with 50 customers and properly closing the bank.
