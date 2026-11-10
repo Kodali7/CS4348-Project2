@@ -55,3 +55,9 @@ I'll keep three tellers and five customers while working on this part since we d
 I added the manager and safe to the transaction part. Withdrawals can now get permission from the manager, while deposits skip that step. I also had to use semaphores to allow one teller with the manager and two in the safe at a time. I also added the random delays and messages for using both resources. The teller releases the manager before going to the safe and finishes the safe work before telling the customer the transaction is done. This keeeps the customer from leaving too early and ensures proper completion.
 
 During testing, I realized I originaly was counting the teller's waiting message twice (duplicate), even though the teller should wait again after serving each customer. To fix this, I updated the duplicate check to only compare messages tied to customer instead of checking the printed lines. This allowed me to check and ensure the teller's waiting message to repeat while still checking for repeated customer actions. After fixing this part, I tried this process again and everything seemed to close properly.
+
+## 11/10/2026 2:28 pm
+
+Here, I plan to add the random customer arrival delay now that the manager and safe part is working. For this to work, after choosing a transaction, each customer will wait between 0 and 100 ms before trying to enter the bank. I'll add messages before and after the wait and still enforce the bank opening rule so customers can't enter until all three tellers are ready.
+
+I'll keep using three tellers and five customers from the previous session. The arrival delay needs to happen before taking the door semaphore so a customer doesn't hold the door while waiting to arrive. I'll also check that the transaction steps still work and all threads finish properly.
