@@ -67,3 +67,9 @@ I'll keep using three tellers and five customers from the previous session. The 
 I added the random arrival delay after customer chooses a trannsaction. Each customer has to wait now between 0 and 100 ms before trying to enter bank, with messages before and after the wait. I kept this outside the door semaphore so the delay doesn't stop other customers from using the door and entering. The existing bank opening signal still checks enforces the entering condition.
 
 I didn't face any problems here as it was just a short part to add and other previous parts still work. So far, I think I completed all the required sub parts before reaching and trying the full run with 50 customers and properly closing the bank.
+
+## 11/13/2026 3:40 pm
+
+For this session, I am going to move to the full 50 customers and check that everything still works when more customers have to wait for a teller. I will also ensure that all parts still work properly (should be since I'm mainly only changing count). This would include bank rules being following, acknowledgement being given, threads closing properly without errors, etc.
+
+If everything still works as expected, then I know I compelted this project and I will just write a closing message that we need to show the bank is done.
