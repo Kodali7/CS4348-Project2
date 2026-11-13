@@ -3,7 +3,7 @@ import threading
 import time
 
 
-CUSTOMER_COUNT = 5
+CUSTOMER_COUNT = 50
 TELLER_COUNT = 3
 
 # main waits for all tellers before letting customers enter
@@ -55,7 +55,7 @@ def teller(teller_id):
         customer_ready[teller_id].acquire()
 
         customer_id = current_customer_id[teller_id]
-        # main clears the slot only after every customeer is done
+        # main clears the slot only after every customer is done
         if customer_id is None:
             break
         log(f"Teller {teller_id} [Customer {customer_id}]: acknowledges introduction")
@@ -106,6 +106,7 @@ def customer(customer_id):
 
     log(f"Customer {customer_id}: waiting for bank to open")
     bank_open.acquire()
+    log(f"Customer {customer_id}: bank is open")
 
     log(f"Customer {customer_id}: waiting to enter bank")
     with door:
@@ -122,11 +123,13 @@ def customer(customer_id):
     log(f"Customer {customer_id} [Teller {teller_id}]: introduces itself")
     customer_ready[teller_id].release()
 
+    log(f"Customer {customer_id} [Teller {teller_id}]: waiting for introduction acknowledgment")
     introduction_received[teller_id].acquire()
     log(f"Customer {customer_id} [Teller {teller_id}]: introduction acknowledged")
 
     log(f"Customer {customer_id} [Teller {teller_id}]: waiting for transaction request")
     transaction_requested[teller_id].acquire()
+    log(f"Customer {customer_id} [Teller {teller_id}]: received transaction request")
     current_transaction[teller_id] = transaction
     log(f"Customer {customer_id} [Teller {teller_id}]: requests {transaction}")
     transaction_ready[teller_id].release()
@@ -176,6 +179,7 @@ def main():
         customer_ready[teller_id].release()
     for thread in teller_threads:
         thread.join()
+    log("Bank: closed")
 
 
 if __name__ == "__main__":

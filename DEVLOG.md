@@ -73,3 +73,7 @@ I didn't face any problems here as it was just a short part to add and other pre
 For this session, I am going to move to the full 50 customers and check that everything still works when more customers have to wait for a teller. I will also ensure that all parts still work properly (should be since I'm mainly only changing count). This would include bank rules being following, acknowledgement being given, threads closing properly without errors, etc.
 
 If everything still works as expected, then I know I compelted this project and I will just write a closing message that we need to show the bank is done.
+
+## 11/13/2026 4:10 pm
+
+I was able to test the code with the 50 customers and add some extra lines to log to ensure everything was following the expected process. From everything else I've seen, I think I completed I assignment and I didn't find myself to have any problems with this part as it was very minimal to modify.
